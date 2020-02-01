@@ -11,14 +11,10 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 
-
 @NoArgsConstructor
 public class SportsBookScrape {
 
-    private int GAME_LINES_ACCORDIAN_IDX = 0;
-
     public Document returnDocumentFromUrl(String url) {
-        Document doc;
         try {
             return Jsoup.connect(url).get();
         } catch (IOException e) {
@@ -72,7 +68,7 @@ public class SportsBookScrape {
                     Element gameLine = getFirstEventInCollapsableMenu(collapsableMenu);
                     String gameLineLink = retrieveLinkFromElement(gameLine);
                     System.out.println(SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink));
-                    return gameLineLink;
+                    return SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink);
                 }
             }
         }
