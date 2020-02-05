@@ -1,11 +1,15 @@
 package com.awslinemovement.service.scrape;
 
+import com.awslinemovement.service.model.GameEvent;
+import com.awslinemovement.service.model.LineTuple;
+import com.awslinemovement.service.model.Team;
 import lombok.NoArgsConstructor;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor
@@ -44,62 +48,121 @@ public class GameLinesRetriever {
         return (awayTeamName + VERSUS_STR + homeTeamName + dateOfEvent).replaceAll("\\s", DASH);
     }
 
-    private void transformGameLineToModel(Element gameLineRowEvent) {
+    private List<String> parseLineParts(String spreadElem) {
+        List<String> spreadPartList = new ArrayList<>();
+        String spreadLine = spreadElem.substring(0, spreadElem.indexOf("(")).replaceAll("\\s", "");
+        String spreadOdds = spreadElem.substring(spreadElem.indexOf("(") + 1, spreadElem.length() - 1);
+        if (spreadOdds.contains("EV")) {
+            spreadOdds = "-100";
+        }
+        spreadPartList.add(spreadLine);
+        spreadPartList.add(spreadOdds);
+        return spreadPartList;
+    }
+
+    private GameEvent transformGameLineToModel(Element gameLineRowEvent) {
+
+        GameEvent gameEvent = new GameEvent();
+
+        Team homeTeam = new Team();
+        LineTuple homeTeamSpread = new LineTuple();
+        LineTuple homeTeamTotal = new LineTuple();
+
+        Team awayTeam = new Team();
+        LineTuple awayTeamSpread = new LineTuple();
+        LineTuple awayTeamTotal = new LineTuple();
 
         long unixTime = System.currentTimeMillis() / 1000L;
         String timestamp = Long.toString(unixTime);
-        System.out.println(timestamp);
+        gameEvent.setTimestamp(timestamp);
 
         String dateOfEvent = getDateOfEvent(gameLineRowEvent);
         if (dateOfEvent.isEmpty()) {
             System.out.println("Could not determine date of event.");
-            return;
+            return null;
+        } else {
+            gameEvent.setEventDate(dateOfEvent);
         }
-        System.out.println(dateOfEvent);
 
         String awayTeamName = gameLineRowEvent.select("#firstTeamName").text();
         String homeTeamName = gameLineRowEvent.select("#secondTeamName").text();
-        System.out.println(homeTeamName);
-        System.out.println(awayTeamName);
+        homeTeam.setName(homeTeamName);
+        awayTeam.setName(awayTeamName);
 
         String uniqueIdentifier = getUniqueIdentifierForGameEvent(awayTeamName, homeTeamName, dateOfEvent);
-        System.out.println(uniqueIdentifier);
+        gameEvent.setGameEventIdentifier(uniqueIdentifier);
 
         // ML class is actually total, total actually ML
         Elements moneyMarketElems = gameLineRowEvent.select(".column.total").select(".market");
         String homeTeamMLOdds = retrieveLineInfo(moneyMarketElems, HOME_TEAM_MARKET_IDX);
         String awayTeamMLOdds = retrieveLineInfo(moneyMarketElems, AWAY_TEAM_MARKET_IDX);
-        System.out.println(homeTeamMLOdds);
-        System.out.println(awayTeamMLOdds);
+        homeTeam.setML(homeTeamMLOdds);
+        awayTeam.setML(awayTeamMLOdds);
 
         Elements spreadMarketElems = gameLineRowEvent.select(".column.spread").select(".market");
-        String homeTeamSpread = retrieveLineInfo(spreadMarketElems, HOME_TEAM_MARKET_IDX);
-        String awayTeamSpread = retrieveLineInfo(spreadMarketElems, AWAY_TEAM_MARKET_IDX);
+        String homeTeamSpreadElem = retrieveLineInfo(spreadMarketElems, HOME_TEAM_MARKET_IDX);
+        String awayTeamSpreadElem = retrieveLineInfo(spreadMarketElems, AWAY_TEAM_MARKET_IDX);
 
-        System.out.println(homeTeamSpread);
-        System.out.println(awayTeamSpread);
+        String homeTeamSpreadLine = parseLineParts(homeTeamSpreadElem).get(0);
+        String homeTeamSpreadOdds = parseLineParts(homeTeamSpreadElem).get(1);
 
+        homeTeamSpread.setLineAmount(homeTeamSpreadLine);
+        homeTeamSpread.setLineOdds(homeTeamSpreadOdds);
+
+        String awayTeamSpreadLine = parseLineParts(awayTeamSpreadElem).get(0);
+        String awayTeamSpreadOdds = parseLineParts(awayTeamSpreadElem).get(1);
+
+        awayTeamSpread.setLineAmount(awayTeamSpreadLine);
+        awayTeamSpread.setLineOdds(awayTeamSpreadOdds);
 
         Elements totalMarketElems = gameLineRowEvent.select(".column.money").select(".market");
-        String homeTeamTotal = retrieveLineInfo(totalMarketElems, HOME_TEAM_MARKET_IDX);
-        String awayTeamTotal = retrieveLineInfo(totalMarketElems, AWAY_TEAM_MARKET_IDX);
+        String homeTeamTotalElem = retrieveLineInfo(totalMarketElems, HOME_TEAM_MARKET_IDX);
+        String awayTeamTotalElem = retrieveLineInfo(totalMarketElems, AWAY_TEAM_MARKET_IDX);
 
-        System.out.println(homeTeamTotal);
-        System.out.println(awayTeamTotal);
+        String homeTeamTotalLine = parseLineParts(homeTeamTotalElem).get(0);
+        String homeTeamTotalLineWithoutDirection = homeTeamTotalLine.substring(1);
+        String homeTeamTotalOdds = parseLineParts(homeTeamTotalElem).get(1);
+
+        homeTeamTotal.setLineAmount(homeTeamTotalLineWithoutDirection);
+        homeTeamTotal.setLineOdds(homeTeamTotalOdds);
+
+        String awayTeamTotalLine = parseLineParts(awayTeamTotalElem).get(0);
+        String awayTeamTotalLineWithoutDirection = awayTeamTotalLine.substring(1);
+        String awayTeamTotalOdds = parseLineParts(awayTeamTotalElem).get(1);
+
+        awayTeamTotal.setLineAmount(awayTeamTotalLineWithoutDirection);
+        awayTeamTotal.setLineOdds(awayTeamTotalOdds);
+
+        homeTeam.setSpread(homeTeamSpread);
+        homeTeam.setTotal(homeTeamTotal);
+        awayTeam.setSpread(awayTeamSpread);
+        awayTeam.setTotal(awayTeamTotal);
+
+        gameEvent.setHomeTeam(homeTeam);
+        gameEvent.setAwayTeam(awayTeam);
+        return gameEvent;
     }
 
-    public void retrieveRowEventInformation(Document doc) {
+    public List<GameEvent> retrieveGameEvents(Document doc) {
+        List<GameEvent> gameEventList = new ArrayList<>();
         Elements rowEvents = doc.select(".row.event");
         if (rowEvents.size() <= 1) {
             System.out.println("No lines currently");
-            return;
+            return gameEventList;
         }
 
         // SKIP Overarching blank row event
         Elements gameLineRowEvents = rowEvents.stream().skip(1).collect(Collectors.toCollection(Elements::new));
 
         for (Element gameLineRowEvent : gameLineRowEvents) {
-            transformGameLineToModel(gameLineRowEvent);
+            GameEvent gameEvent = transformGameLineToModel(gameLineRowEvent);
+            if (gameEvent == null) {
+                System.out.println("Houston, we have a problem");
+            } else {
+                System.out.println(gameEvent);
+                gameEventList.add(gameEvent);
+            }
         }
+        return gameEventList;
     }
 }

@@ -4,8 +4,10 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import lombok.Data;
 
-@DynamoDBTable(tableName = "GameEventsTable")
+@DynamoDBTable(tableName = "AWSLineMovementInfrastructure-PROD-GameEventsTable")
+@Data
 public class GameEvent {
     private String uniqueIdentifier;
     private String timestamp;
@@ -13,9 +15,9 @@ public class GameEvent {
     private Team awayTeam;
     private String dateOfEvent;
 
-    @DynamoDBHashKey(attributeName = "Id")
-    public String getId() { return uniqueIdentifier; }
-    public void setId(String uniqueIdentifier) { this.uniqueIdentifier = uniqueIdentifier; }
+    @DynamoDBHashKey(attributeName = "GameEventIdentifier")
+    public String getGameEventIdentifier() { return uniqueIdentifier; }
+    public void setGameEventIdentifier(String uniqueIdentifier) { this.uniqueIdentifier = uniqueIdentifier; }
 
     @DynamoDBRangeKey(attributeName = "Timestamp")
     public String getTimestamp() { return timestamp; }
