@@ -69,6 +69,8 @@ public class SportsBookScrape {
                     String gameLineLink = retrieveLinkFromElement(gameLine);
                     System.out.println(SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink));
                     return SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink);
+                } else {
+                    return "";
                 }
             }
         }

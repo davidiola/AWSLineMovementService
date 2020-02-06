@@ -13,6 +13,7 @@ public final class Constants {
     );
 
     public static final String SPORTSBOOK_BASE_URL = "https://www.sportsbook.ag";
+    public static final String PROD_AWS_REGION = "us-east-1";
 }
 
 
