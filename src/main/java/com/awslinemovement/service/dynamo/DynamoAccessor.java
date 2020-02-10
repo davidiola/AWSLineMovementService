@@ -7,8 +7,11 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.awslinemovement.service.LineMovementService;
 import com.awslinemovement.service.model.GameEvent;
 import lombok.NonNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,12 +20,12 @@ import java.util.stream.Stream;
 
 public class DynamoAccessor {
     @NonNull
-    private AmazonDynamoDB dynamoDBClient;
     private DynamoDBMapper dynamoDBMapper;
     private AmazonCloudWatch cloudWatchClient;
 
+    private static final Logger log = LogManager.getLogger(LineMovementService.class);
+
     public DynamoAccessor(final AmazonDynamoDB dynamoDBClient, final AmazonCloudWatch cwClient) {
-       this.dynamoDBClient = dynamoDBClient;
        this.cloudWatchClient = cwClient;
        this.dynamoDBMapper = new DynamoDBMapper(dynamoDBClient);
     }
@@ -42,6 +45,7 @@ public class DynamoAccessor {
     public void putGameEventItems(List<GameEvent> gameEvents) {
         dynamoDBMapper.batchSave(gameEvents);
         for (GameEvent gameEvent : gameEvents) {
+            log.info(String.format("Put Game Event to Dynamo: %s", gameEvent));
             putMetricsToCloudWatchForGameEvent(gameEvent);
         }
     }

@@ -3,6 +3,7 @@ package com.awslinemovement.service.scrape;
 import com.awslinemovement.service.model.GameEvent;
 import com.awslinemovement.service.model.LineTuple;
 import com.awslinemovement.service.model.Team;
+import com.google.common.base.Strings;
 import lombok.NoArgsConstructor;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -12,16 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.awslinemovement.service.constants.Constants.*;
+
 @NoArgsConstructor
 public class GameLinesRetriever {
-
-    private static final int HOME_TEAM_MARKET_IDX = 0;
-    private static final int AWAY_TEAM_MARKET_IDX = 1;
-    private static final String DASH = "-";
-    private static final String YEAR_PREFIX_STRING = DASH + "20";
-    private static final int LENGTH_OF_DATE_STR = 6;
-    private static final String UPDATE_TICKET_SELECTOR = "a[href*=\"./updateTicket.sbk\"]";
-    private static final String VERSUS_STR = "v";
 
     private String retrieveLineInfo(Elements marketElems, int teamIndex) {
         String lineText = marketElems.get(teamIndex).text();
@@ -50,6 +45,9 @@ public class GameLinesRetriever {
 
     private List<String> parseLineParts(String spreadElem) {
         List<String> spreadPartList = new ArrayList<>();
+        if (spreadElem.isEmpty()) {
+            return spreadPartList;
+        }
         String spreadLine = spreadElem.substring(0, spreadElem.indexOf("(")).replaceAll("\\s", "");
         String spreadOdds = spreadElem.substring(spreadElem.indexOf("(") + 1, spreadElem.length() - 1);
         if (spreadOdds.contains("EV")) {
@@ -60,17 +58,54 @@ public class GameLinesRetriever {
         return spreadPartList;
     }
 
+    private LineTuple transformRowEventToSpreadOrTotal(Element gameLineRowEvent, boolean spread, int marketIdx) {
+        LineTuple lineTuple = new LineTuple();
+        String rowEventLineTupleSelector;
+        if (spread) {
+            rowEventLineTupleSelector = SPREAD_SELECTOR;
+        }  else {
+            rowEventLineTupleSelector = TOTAL_SELECTOR;
+        }
+
+        Elements marketElems = gameLineRowEvent.select(rowEventLineTupleSelector).select(".market");
+        String lineTupleElem = retrieveLineInfo(marketElems, marketIdx);
+        if (!lineTupleElem.isEmpty()) {
+           String line = parseLineParts(lineTupleElem).get(0);
+           String odds = parseLineParts(lineTupleElem).get(1);
+           lineTuple.setLineAmount(line);
+           lineTuple.setLineOdds(odds);
+        }
+        return lineTuple;
+    }
+
+    private Team transformRowEventToTeam(Element gameLineRowEvent, boolean home) {
+        Team team = new Team();
+
+        String teamNameSelector;
+        int marketIdx;
+        if (home) {
+            teamNameSelector = HOME_TEAM_NAME_SELECTOR;
+            marketIdx = HOME_TEAM_MARKET_IDX;
+        } else {
+            teamNameSelector = AWAY_TEAM_NAME_SELECTOR;
+            marketIdx = AWAY_TEAM_MARKET_IDX;
+        }
+        team.setName(gameLineRowEvent.select(teamNameSelector).text());
+
+        // ML class is actually total, total actually ML
+        Elements moneyMarketElems = gameLineRowEvent.select(ML_SELECTOR).select(".market");
+        String teamMLOdds = retrieveLineInfo(moneyMarketElems, marketIdx);
+        team.setML(teamMLOdds);
+
+        team.setSpread(transformRowEventToSpreadOrTotal(gameLineRowEvent, true, marketIdx));
+        team.setTotal(transformRowEventToSpreadOrTotal(gameLineRowEvent, false, marketIdx));
+
+        return team;
+    }
+
     private GameEvent transformGameLineToModel(Element gameLineRowEvent) {
 
         GameEvent gameEvent = new GameEvent();
-
-        Team homeTeam = new Team();
-        LineTuple homeTeamSpread = new LineTuple();
-        LineTuple homeTeamTotal = new LineTuple();
-
-        Team awayTeam = new Team();
-        LineTuple awayTeamSpread = new LineTuple();
-        LineTuple awayTeamTotal = new LineTuple();
 
         long unixTime = System.currentTimeMillis() / 1000L;
         String timestamp = Long.toString(unixTime);
@@ -84,62 +119,15 @@ public class GameLinesRetriever {
             gameEvent.setEventDate(dateOfEvent);
         }
 
-        String awayTeamName = gameLineRowEvent.select("#firstTeamName").text();
-        String homeTeamName = gameLineRowEvent.select("#secondTeamName").text();
-        homeTeam.setName(homeTeamName);
-        awayTeam.setName(awayTeamName);
+        Team homeTeam = transformRowEventToTeam(gameLineRowEvent, true);
+        Team awayTeam = transformRowEventToTeam(gameLineRowEvent, false);
 
-        String uniqueIdentifier = getUniqueIdentifierForGameEvent(awayTeamName, homeTeamName, dateOfEvent);
+        String uniqueIdentifier = getUniqueIdentifierForGameEvent(awayTeam.getName(), homeTeam.getName(), dateOfEvent);
         gameEvent.setGameEventIdentifier(uniqueIdentifier);
-
-        // ML class is actually total, total actually ML
-        Elements moneyMarketElems = gameLineRowEvent.select(".column.total").select(".market");
-        String homeTeamMLOdds = retrieveLineInfo(moneyMarketElems, HOME_TEAM_MARKET_IDX);
-        String awayTeamMLOdds = retrieveLineInfo(moneyMarketElems, AWAY_TEAM_MARKET_IDX);
-        homeTeam.setML(homeTeamMLOdds);
-        awayTeam.setML(awayTeamMLOdds);
-
-        Elements spreadMarketElems = gameLineRowEvent.select(".column.spread").select(".market");
-        String homeTeamSpreadElem = retrieveLineInfo(spreadMarketElems, HOME_TEAM_MARKET_IDX);
-        String awayTeamSpreadElem = retrieveLineInfo(spreadMarketElems, AWAY_TEAM_MARKET_IDX);
-
-        String homeTeamSpreadLine = parseLineParts(homeTeamSpreadElem).get(0);
-        String homeTeamSpreadOdds = parseLineParts(homeTeamSpreadElem).get(1);
-
-        homeTeamSpread.setLineAmount(homeTeamSpreadLine);
-        homeTeamSpread.setLineOdds(homeTeamSpreadOdds);
-
-        String awayTeamSpreadLine = parseLineParts(awayTeamSpreadElem).get(0);
-        String awayTeamSpreadOdds = parseLineParts(awayTeamSpreadElem).get(1);
-
-        awayTeamSpread.setLineAmount(awayTeamSpreadLine);
-        awayTeamSpread.setLineOdds(awayTeamSpreadOdds);
-
-        Elements totalMarketElems = gameLineRowEvent.select(".column.money").select(".market");
-        String homeTeamTotalElem = retrieveLineInfo(totalMarketElems, HOME_TEAM_MARKET_IDX);
-        String awayTeamTotalElem = retrieveLineInfo(totalMarketElems, AWAY_TEAM_MARKET_IDX);
-
-        String homeTeamTotalLine = parseLineParts(homeTeamTotalElem).get(0);
-        String homeTeamTotalLineWithoutDirection = homeTeamTotalLine.substring(1);
-        String homeTeamTotalOdds = parseLineParts(homeTeamTotalElem).get(1);
-
-        homeTeamTotal.setLineAmount(homeTeamTotalLineWithoutDirection);
-        homeTeamTotal.setLineOdds(homeTeamTotalOdds);
-
-        String awayTeamTotalLine = parseLineParts(awayTeamTotalElem).get(0);
-        String awayTeamTotalLineWithoutDirection = awayTeamTotalLine.substring(1);
-        String awayTeamTotalOdds = parseLineParts(awayTeamTotalElem).get(1);
-
-        awayTeamTotal.setLineAmount(awayTeamTotalLineWithoutDirection);
-        awayTeamTotal.setLineOdds(awayTeamTotalOdds);
-
-        homeTeam.setSpread(homeTeamSpread);
-        homeTeam.setTotal(homeTeamTotal);
-        awayTeam.setSpread(awayTeamSpread);
-        awayTeam.setTotal(awayTeamTotal);
 
         gameEvent.setHomeTeam(homeTeam);
         gameEvent.setAwayTeam(awayTeam);
+
         return gameEvent;
     }
 
@@ -159,10 +147,37 @@ public class GameLinesRetriever {
             if (gameEvent == null) {
                 System.out.println("Houston, we have a problem");
             } else {
-                System.out.println(gameEvent);
+                // System.out.println(gameEvent);
                 gameEventList.add(gameEvent);
             }
         }
         return gameEventList;
+    }
+
+    private boolean teamHasNullField(Team team) {
+      if (Strings.isNullOrEmpty(team.getML()) || Strings.isNullOrEmpty(team.getName())
+          || team.getSpread() == null || team.getTotal() == null) {
+            return true;
+        }
+      return false;
+    }
+
+    public List<GameEvent> filterGameEventsWithNullFields(List<GameEvent> gameEvents) {
+        List<GameEvent> filteredGameEventList = new ArrayList<>();
+        for (GameEvent gameEvent : gameEvents) {
+            if (gameEvent == null) {
+                continue;
+            }
+            if (Strings.isNullOrEmpty(gameEvent.getEventDate())
+                    || Strings.isNullOrEmpty(gameEvent.getGameEventIdentifier())
+                    || Strings.isNullOrEmpty(gameEvent.getTimestamp())) {
+                continue;
+            }
+            if (teamHasNullField(gameEvent.getAwayTeam()) || teamHasNullField(gameEvent.getHomeTeam())) {
+                continue;
+            }
+            filteredGameEventList.add(gameEvent);
+        }
+        return filteredGameEventList;
     }
 }

@@ -59,7 +59,6 @@ public class SportsBookScrape {
         for (Element panelPrimary : panelPrimaries) {
             Element accordion = getFirstAccordionElement(panelPrimary);
             if (accordion != null) {
-                // System.out.println(accordion.text());
                 if (!accordionTextMatchesSport(accordion.text(), sport)) {
                    continue;
                 }
@@ -67,7 +66,6 @@ public class SportsBookScrape {
                 if (collapsableMenu != null) {
                     Element gameLine = getFirstEventInCollapsableMenu(collapsableMenu);
                     String gameLineLink = retrieveLinkFromElement(gameLine);
-                    System.out.println(SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink));
                     return SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink);
                 } else {
                     return "";

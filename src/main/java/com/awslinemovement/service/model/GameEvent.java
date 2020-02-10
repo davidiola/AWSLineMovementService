@@ -9,15 +9,15 @@ import lombok.Data;
 @DynamoDBTable(tableName = "AWSLineMovementInfrastructure-PROD-GameEventsTable")
 @Data
 public class GameEvent {
-    private String uniqueIdentifier;
+    private String gameEventIdentifier;
     private String timestamp;
     private Team homeTeam;
     private Team awayTeam;
-    private String dateOfEvent;
+    private String eventDate;
 
     @DynamoDBHashKey(attributeName = "GameEventIdentifier")
-    public String getGameEventIdentifier() { return uniqueIdentifier; }
-    public void setGameEventIdentifier(String uniqueIdentifier) { this.uniqueIdentifier = uniqueIdentifier; }
+    public String getGameEventIdentifier() { return gameEventIdentifier; }
+    public void setGameEventIdentifier(String gameEventIdentifier) { this.gameEventIdentifier = gameEventIdentifier; }
 
     @DynamoDBRangeKey(attributeName = "Timestamp")
     public String getTimestamp() { return timestamp; }
@@ -32,8 +32,8 @@ public class GameEvent {
     public void setAwayTeam(Team awayTeam) { this.awayTeam = awayTeam; }
 
     @DynamoDBAttribute(attributeName = "EventDate")
-    public String getEventDate() { return dateOfEvent; }
-    public void setEventDate(String dateOfEvent) { this.dateOfEvent = dateOfEvent; }
+    public String getEventDate() { return eventDate; }
+    public void setEventDate(String eventDate) { this.eventDate = eventDate; }
 
 
 }
