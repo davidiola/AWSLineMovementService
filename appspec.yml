@@ -4,6 +4,9 @@ files:
   - source: /
     destination: /home/ec2-user
 hooks:
+  BeforeInstall:
+    - location: deployment_scripts/before_install.sh
+      timeout: 90
   ApplicationStart:
     - location: deployment_scripts/application_start.sh
       timeout: 180
