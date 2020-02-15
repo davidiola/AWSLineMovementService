@@ -1,0 +1,8 @@
+version: 0.0
+files:
+  - source: /
+    destination: /home/ec2-user
+hooks:
+  ApplicationStart:
+    - location: deployment_scripts/application_start.sh
+      timeout: 180
