@@ -10,6 +10,7 @@ import com.awslinemovement.service.dynamo.DynamoAccessor;
 import com.awslinemovement.service.model.GameEvent;
 import com.awslinemovement.service.scrape.GameLinesRetriever;
 import com.awslinemovement.service.scrape.SportsBookScrape;
+import com.awslinemovement.service.transformers.GameEventToGraphTransformer;
 import com.google.inject.Inject;
 import lombok.AllArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -27,6 +28,7 @@ public class LineMovementService {
     private final AmazonCloudWatch cloudWatchClient;
     private final DynamoAccessor dynamoAccessor;
     private final SportsBookScrape sportsBookScrape;
+    private final GameEventToGraphTransformer gameEventToGraphTransformer;
 
     private static final Logger log = LogManager.getLogger(LineMovementService.class);
 
@@ -55,6 +57,7 @@ public class LineMovementService {
         Document homeDoc = sportsBookScrape.returnDocumentFromUrl(SPORTSBOOK_BASE_URL);
         String gameLineUrl = sportsBookScrape.retrieveGameLineUrlForSport(sport, homeDoc);
 
+        /*
         if (!gameLineUrl.isEmpty()) {
             transmitCloudWatchMetricForGameLineUrl(true, sport);
             Document rowEventsDoc = sportsBookScrape.returnDocumentFromUrl(gameLineUrl);
@@ -78,5 +81,8 @@ public class LineMovementService {
             transmitCloudWatchMetricForGameLineUrl(false, sport);
             System.out.println("Raise exception!");
         }
+         */
+        List<GameEvent> events = dynamoAccessor.retrieveGameEventsForIdentifier("Los-Angeles-LakersvNew-Orleans-Pelicans03-01-2020");
+        gameEventToGraphTransformer.writeGameEventToGraphDataFile(events);
     }
 }

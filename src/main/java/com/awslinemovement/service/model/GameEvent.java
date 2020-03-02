@@ -8,7 +8,7 @@ import lombok.Data;
 
 @DynamoDBTable(tableName = "AWSLineMovementInfrastructure-PROD-GameEventsTable")
 @Data
-public class GameEvent {
+public class GameEvent implements Comparable<GameEvent> {
     private String gameEventIdentifier;
     private String timestamp;
     private Team homeTeam;
@@ -35,5 +35,12 @@ public class GameEvent {
     public String getEventDate() { return eventDate; }
     public void setEventDate(String eventDate) { this.eventDate = eventDate; }
 
+    @Override
+    public int compareTo(GameEvent e) {
+        if (this.timestamp.isEmpty() || e.timestamp.isEmpty()) {
+            return 0;
+        }
+        return this.timestamp.compareTo(e.timestamp);
+    }
 
 }

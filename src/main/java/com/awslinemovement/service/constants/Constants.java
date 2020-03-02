@@ -6,6 +6,7 @@ import java.util.Map;
 
 public final class Constants {
     public enum Sport { NBA, NFL, NCAAB }
+    public enum LineType { ML, SPREAD, TOTAL }
     public static final Map<Sport, String> SPORT_STRING_MAP = ImmutableMap.of(
             Sport.NBA, "NBA",
             Sport.NFL, "NFL",

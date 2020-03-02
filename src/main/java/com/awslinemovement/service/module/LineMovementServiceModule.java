@@ -9,6 +9,8 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.awslinemovement.service.LineMovementService;
 import com.awslinemovement.service.dynamo.DynamoAccessor;
 import com.awslinemovement.service.scrape.SportsBookScrape;
+import com.awslinemovement.service.transformers.GameEventToGraphTransformer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -54,8 +56,17 @@ public class LineMovementServiceModule extends AbstractModule {
 
     @Provides
     @Singleton
-    LineMovementService getLineMovementService(final DynamoAccessor dynamoAccessor, final AmazonCloudWatch cwClient, final SportsBookScrape sportsBookScrape) {
-        return new LineMovementService(cwClient, dynamoAccessor, sportsBookScrape);
+    ObjectMapper getObjectMapper() { return new ObjectMapper(); }
+
+    @Provides
+    @Singleton
+    GameEventToGraphTransformer getGameEventToGraphTransformer() { return new GameEventToGraphTransformer(getObjectMapper()); }
+
+    @Provides
+    @Singleton
+    LineMovementService getLineMovementService(final DynamoAccessor dynamoAccessor, final AmazonCloudWatch cwClient,
+                                               final SportsBookScrape sportsBookScrape, final GameEventToGraphTransformer gameEventToGraphTransformer) {
+        return new LineMovementService(cwClient, dynamoAccessor, sportsBookScrape, gameEventToGraphTransformer);
     }
 
 
