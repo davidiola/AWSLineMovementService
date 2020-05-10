@@ -1,8 +1,8 @@
 package com.awslinemovement.service.scrape;
 
-import com.awslinemovement.service.model.GameEvent;
-import com.awslinemovement.service.model.LineTuple;
-import com.awslinemovement.service.model.Team;
+import com.awslinemovement.service.model.dataaccess.GameEvent;
+import com.awslinemovement.service.model.dataaccess.LineTuple;
+import com.awslinemovement.service.model.dataaccess.Team;
 import com.google.common.base.Strings;
 import lombok.NoArgsConstructor;
 import org.jsoup.nodes.Document;
@@ -95,7 +95,7 @@ public class GameLinesRetriever {
         // ML class is actually total, total actually ML
         Elements moneyMarketElems = gameLineRowEvent.select(ML_SELECTOR).select(".market");
         String teamMLOdds = retrieveLineInfo(moneyMarketElems, marketIdx);
-        team.setML(teamMLOdds);
+        team.setMl(teamMLOdds);
 
         team.setSpread(transformRowEventToSpreadOrTotal(gameLineRowEvent, true, marketIdx));
         team.setTotal(transformRowEventToSpreadOrTotal(gameLineRowEvent, false, marketIdx));
@@ -155,7 +155,7 @@ public class GameLinesRetriever {
     }
 
     private boolean teamHasNullField(Team team) {
-      if (Strings.isNullOrEmpty(team.getML()) || Strings.isNullOrEmpty(team.getName())
+      if (Strings.isNullOrEmpty(team.getMl()) || Strings.isNullOrEmpty(team.getName())
           || team.getSpread() == null || team.getTotal() == null) {
             return true;
         }

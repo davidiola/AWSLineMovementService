@@ -6,10 +6,7 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.awslinemovement.service.LineMovementService;
-import com.awslinemovement.service.dynamo.DynamoAccessor;
-import com.awslinemovement.service.scrape.SportsBookScrape;
-import com.awslinemovement.service.transformers.GameEventToGraphTransformer;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -37,6 +34,12 @@ public class LineMovementServiceModule extends AbstractModule {
 
     @Provides
     @Singleton
+    DynamoDBMapper getDDBMapper(final AmazonDynamoDB ddbClient) {
+        return new DynamoDBMapper(ddbClient);
+    }
+
+    @Provides
+    @Singleton
     AmazonCloudWatch getCloudWatchClient(final AWSCredentialsProvider awsCredentialsProvider) {
         return AmazonCloudWatchClientBuilder.standard().withRegion(PROD_AWS_REGION)
                 .withCredentials(awsCredentialsProvider).build();
@@ -44,31 +47,6 @@ public class LineMovementServiceModule extends AbstractModule {
 
     @Provides
     @Singleton
-    DynamoAccessor getDynamoAccessor(final AmazonDynamoDB dynamoDBClient, final AmazonCloudWatch cwClient) {
-        return new DynamoAccessor(dynamoDBClient, cwClient);
-    }
-
-    @Provides
-    @Singleton
-    SportsBookScrape getSportsbookScrape() {
-        return new SportsBookScrape();
-    }
-
-    @Provides
-    @Singleton
     ObjectMapper getObjectMapper() { return new ObjectMapper(); }
-
-    @Provides
-    @Singleton
-    GameEventToGraphTransformer getGameEventToGraphTransformer() { return new GameEventToGraphTransformer(getObjectMapper()); }
-
-    @Provides
-    @Singleton
-    LineMovementService getLineMovementService(final DynamoAccessor dynamoAccessor, final AmazonCloudWatch cwClient,
-                                               final SportsBookScrape sportsBookScrape, final GameEventToGraphTransformer gameEventToGraphTransformer) {
-        return new LineMovementService(cwClient, dynamoAccessor, sportsBookScrape, gameEventToGraphTransformer);
-    }
-
-
 
 }

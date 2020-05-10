@@ -1,22 +1,27 @@
 package com.awslinemovement.service.transformers;
 
 import com.awslinemovement.service.constants.Constants;
-import com.awslinemovement.service.model.GameEvent;
-import com.awslinemovement.service.model.Team;
+import com.awslinemovement.service.model.dataaccess.GameEvent;
+import com.awslinemovement.service.model.dataaccess.Team;
 import com.awslinemovement.service.model.graph.GraphData;
 import com.awslinemovement.service.model.graph.GraphLine;
 import com.awslinemovement.service.model.graph.GraphPoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.TimeZone;
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor=@__(@Inject))
 @Log4j2
 public class GameEventToGraphTransformer {
 
@@ -74,7 +79,7 @@ public class GameEventToGraphTransformer {
         }
         switch(lineType) {
           case ML:
-            graphPoint.setY(checkLineForEven(team.getML()));
+            graphPoint.setY(checkLineForEven(team.getMl()));
             break;
           case SPREAD:
             graphPoint.setY(checkLineForEven(team.getSpread().getLineAmount()));

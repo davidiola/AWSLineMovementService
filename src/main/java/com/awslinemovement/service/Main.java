@@ -14,6 +14,5 @@ public class Main {
 
         LineMovementService lineMovementService = injector.getInstance(LineMovementService.class);
         lineMovementService.init();
-
     }
 }

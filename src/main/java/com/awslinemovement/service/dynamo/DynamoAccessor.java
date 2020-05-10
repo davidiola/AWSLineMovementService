@@ -5,14 +5,14 @@ import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.awslinemovement.service.LineMovementService;
-import com.awslinemovement.service.model.GameEvent;
-import com.google.common.collect.ImmutableList;
+import com.awslinemovement.service.model.dataaccess.GameEvent;
+import com.google.inject.Inject;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,17 +23,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
+@RequiredArgsConstructor(onConstructor=@__(@Inject))
 public class DynamoAccessor {
     @NonNull
     private DynamoDBMapper dynamoDBMapper;
+    @NonNull
     private AmazonCloudWatch cloudWatchClient;
 
     private static final Logger log = LogManager.getLogger(LineMovementService.class);
-
-    public DynamoAccessor(final AmazonDynamoDB dynamoDBClient, final AmazonCloudWatch cwClient) {
-       this.cloudWatchClient = cwClient;
-       this.dynamoDBMapper = new DynamoDBMapper(dynamoDBClient);
-    }
 
     private void putMetricsToCloudWatchForGameEvent(GameEvent gameEvent) {
         Dimension homeTeamNameDimension = new Dimension().withName("HomeTeamName").withValue(gameEvent.getHomeTeam().getName());

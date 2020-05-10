@@ -7,12 +7,12 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.awslinemovement.service.constants.Constants;
 import com.awslinemovement.service.dynamo.DynamoAccessor;
-import com.awslinemovement.service.model.GameEvent;
-import com.awslinemovement.service.scrape.GameLinesRetriever;
+import com.awslinemovement.service.model.dataaccess.GameEvent;
 import com.awslinemovement.service.scrape.SportsBookScrape;
 import com.awslinemovement.service.transformers.GameEventToGraphTransformer;
 import com.google.inject.Inject;
-import lombok.AllArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
@@ -22,12 +22,16 @@ import java.util.List;
 import static com.awslinemovement.service.constants.Constants.SPORTSBOOK_BASE_URL;
 import static com.awslinemovement.service.constants.Constants.SPORT_STRING_MAP;
 
-@AllArgsConstructor(onConstructor=@__(@Inject))
+@RequiredArgsConstructor(onConstructor=@__(@Inject))
 public class LineMovementService {
 
+    @NonNull
     private final AmazonCloudWatch cloudWatchClient;
+    @NonNull
     private final DynamoAccessor dynamoAccessor;
+    @NonNull
     private final SportsBookScrape sportsBookScrape;
+    @NonNull
     private final GameEventToGraphTransformer gameEventToGraphTransformer;
 
     private static final Logger log = LogManager.getLogger(LineMovementService.class);
