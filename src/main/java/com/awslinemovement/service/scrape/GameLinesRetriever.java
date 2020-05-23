@@ -5,16 +5,19 @@ import com.awslinemovement.service.model.dataaccess.LineTuple;
 import com.awslinemovement.service.model.dataaccess.Team;
 import com.google.common.base.Strings;
 import lombok.NoArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.awslinemovement.service.constants.Constants.*;
 
+@Log4j2
 @NoArgsConstructor
 public class GameLinesRetriever {
 
@@ -113,7 +116,7 @@ public class GameLinesRetriever {
 
         String dateOfEvent = getDateOfEvent(gameLineRowEvent);
         if (dateOfEvent.isEmpty()) {
-            System.out.println("Could not determine date of event.");
+            log.error("Could not determine date of event.");
             return null;
         } else {
             gameEvent.setEventDate(dateOfEvent);
@@ -131,27 +134,38 @@ public class GameLinesRetriever {
         return gameEvent;
     }
 
-    public List<GameEvent> retrieveGameEvents(Document doc) {
+    public Optional<List<GameEvent>> retrieveGameEvents(Document doc) {
         List<GameEvent> gameEventList = new ArrayList<>();
         Elements rowEvents = doc.select(".row.event");
+        // 1 Overarching blank row event
         if (rowEvents.size() <= 1) {
-            System.out.println("No lines currently");
-            return gameEventList;
+            return Optional.empty();
         }
 
         // SKIP Overarching blank row event
-        Elements gameLineRowEvents = rowEvents.stream().skip(1).collect(Collectors.toCollection(Elements::new));
+        Elements gameLineRowEvents = rowEvents.stream()
+                .skip(1)
+                .collect(Collectors.toCollection(Elements::new));
 
-        for (Element gameLineRowEvent : gameLineRowEvents) {
-            GameEvent gameEvent = transformGameLineToModel(gameLineRowEvent);
-            if (gameEvent == null) {
-                System.out.println("Houston, we have a problem");
-            } else {
-                // System.out.println(gameEvent);
-                gameEventList.add(gameEvent);
-            }
+        return Optional.of(gameLineRowEvents.stream()
+                .map(this::transformGameLineToModel)
+                .filter(g -> doesNotContainNullFields(g))
+                .collect(Collectors.toList()));
+    }
+
+    private boolean doesNotContainNullFields(GameEvent g) {
+        if (g == null) {
+            return false;
         }
-        return gameEventList;
+        if (Strings.isNullOrEmpty(g.getEventDate())
+                || Strings.isNullOrEmpty(g.getGameEventIdentifier())
+                || Strings.isNullOrEmpty(g.getTimestamp())) {
+            return false;
+        }
+        if (teamHasNullField(g.getAwayTeam()) || teamHasNullField(g.getHomeTeam())) {
+            return false;
+        }
+        return true;
     }
 
     private boolean teamHasNullField(Team team) {
@@ -160,24 +174,5 @@ public class GameLinesRetriever {
             return true;
         }
       return false;
-    }
-
-    public List<GameEvent> filterGameEventsWithNullFields(List<GameEvent> gameEvents) {
-        List<GameEvent> filteredGameEventList = new ArrayList<>();
-        for (GameEvent gameEvent : gameEvents) {
-            if (gameEvent == null) {
-                continue;
-            }
-            if (Strings.isNullOrEmpty(gameEvent.getEventDate())
-                    || Strings.isNullOrEmpty(gameEvent.getGameEventIdentifier())
-                    || Strings.isNullOrEmpty(gameEvent.getTimestamp())) {
-                continue;
-            }
-            if (teamHasNullField(gameEvent.getAwayTeam()) || teamHasNullField(gameEvent.getHomeTeam())) {
-                continue;
-            }
-            filteredGameEventList.add(gameEvent);
-        }
-        return filteredGameEventList;
     }
 }

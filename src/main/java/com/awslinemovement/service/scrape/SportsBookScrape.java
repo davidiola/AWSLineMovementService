@@ -10,6 +10,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @NoArgsConstructor
 public class SportsBookScrape {
@@ -34,44 +35,47 @@ public class SportsBookScrape {
         return link;
     }
 
-    private Element getFirstAccordionElement(Element panelPrimary) {
-       return panelPrimary.select(".topAccordion").first();
+    private Optional<Element> getFirstAccordionElement(Element panelPrimary) {
+       return Optional.ofNullable(panelPrimary.select(".topAccordion").first());
     }
 
     private boolean accordionTextMatchesSport(String accordionText, Sport sport) {
         return accordionText.equals(SPORT_STRING_MAP.get(sport));
     }
 
-    private Element getFirstCollapsableMenu(Element panelPrimary) {
-       return panelPrimary.select(".panel-collapse.collapse").first();
+    private Optional<Element> getFirstCollapsableMenu(Element panelPrimary) {
+       return Optional.ofNullable(panelPrimary.select(".panel-collapse.collapse").first());
     }
 
-    private Element getFirstEventInCollapsableMenu(Element collapsableMenu) {
-       return collapsableMenu.select(".ev").first();
+    private Optional<Element> getFirstEventInCollapsableMenu(Element collapsableMenu) {
+       return Optional.ofNullable(collapsableMenu.select(".ev").first());
     }
 
     private String retrieveLinkFromElement(Element gameLineElement) {
         return gameLineElement.attr("href");
     }
 
-    public String retrieveGameLineUrlForSport(Sport sport, Document doc) {
+    public Optional<String> retrieveGameLineUrlForSport(Sport sport, Document doc) {
         Elements panelPrimaries = doc.select(".panel.panel-primary");
-        for (Element panelPrimary : panelPrimaries) {
-            Element accordion = getFirstAccordionElement(panelPrimary);
-            if (accordion != null) {
-                if (!accordionTextMatchesSport(accordion.text(), sport)) {
-                   continue;
-                }
-                Element collapsableMenu = getFirstCollapsableMenu(panelPrimary);
-                if (collapsableMenu != null) {
-                    Element gameLine = getFirstEventInCollapsableMenu(collapsableMenu);
-                    String gameLineLink = retrieveLinkFromElement(gameLine);
-                    return SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink);
-                } else {
-                    return "";
+        if (!panelPrimaries.isEmpty()) {
+            for (Element panelPrimary : panelPrimaries) {
+                Optional<Element> optAccordion = getFirstAccordionElement(panelPrimary);
+                if (optAccordion.isPresent()) {
+                    if (!accordionTextMatchesSport(optAccordion.get().text(), sport)) {
+                        continue;
+                    }
+                    Optional<Element> collapsableMenu = getFirstCollapsableMenu(panelPrimary);
+                    if (collapsableMenu.isPresent()) {
+                        Optional<Element> gameLine = getFirstEventInCollapsableMenu(collapsableMenu.get());
+                        if (gameLine.isPresent()) {
+                            String gameLineLink = retrieveLinkFromElement(gameLine.get());
+                            return Optional.of(SPORTSBOOK_BASE_URL + trimGameLineLink(gameLineLink));
+                        }
+                    }
                 }
             }
         }
-        return "";
+
+        return Optional.empty();
     }
 }
