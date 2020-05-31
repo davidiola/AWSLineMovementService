@@ -1,6 +1,7 @@
 package com.awslinemovement.service.transformers;
 
 import com.awslinemovement.service.constants.Constants;
+import com.awslinemovement.service.model.api.GameEventRequest;
 import com.awslinemovement.service.model.dataaccess.GameEvent;
 import com.awslinemovement.service.model.dataaccess.Team;
 import com.awslinemovement.service.model.graph.GraphData;
@@ -16,10 +17,10 @@ import lombok.extern.log4j.Log4j2;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor(onConstructor=@__(@Inject))
 @Log4j2
@@ -31,24 +32,27 @@ public class GameEventToGraphTransformer {
     private static final String EVEN = "even";
 
     private List<GameEvent> sortGameEvents(List<GameEvent> gameEvents) {
-        List<GameEvent> arrayListGameEvents = new ArrayList<GameEvent>(gameEvents);
-        Collections.sort(arrayListGameEvents);
-        return arrayListGameEvents;
+        return gameEvents.stream().sorted().collect(Collectors.toList());
     }
 
-    public void writeGameEventToGraphDataFile(List<GameEvent> gameEvents) {
+    public String transformRequestToIdentifier(GameEventRequest gameEventRequest) {
+        return String.format(gameEventRequest.getAwayTeam() + "v" + gameEventRequest.getHomeTeam() + gameEventRequest.getDateOfEvent());
+    }
+
+    public String returnGameEventInGraphJSON(List<GameEvent> gameEvents) {
         List<GameEvent> sortedGameEvents = sortGameEvents(gameEvents);
-        GraphData graphData = GraphData.builder().build();
         GraphLine homeTeamSpreadGraphLine = convertTeamLineDataToGraphLine(sortedGameEvents, true, Constants.LineType.ML);
         GraphLine awayTeamSpreadGraphLine = convertTeamLineDataToGraphLine(sortedGameEvents, false, Constants.LineType.ML);
-        graphData.setLines(ImmutableList.of(homeTeamSpreadGraphLine, awayTeamSpreadGraphLine));
-
+        GraphData graphData = GraphData.builder()
+                .lines(ImmutableList.of(homeTeamSpreadGraphLine, awayTeamSpreadGraphLine))
+                .build();
         try {
             String json = objectMapper.writeValueAsString(graphData);
-            System.out.println(json);
+            return json;
         } catch (JsonProcessingException e) {
-            log.error("Could not process JSON", e);
+            log.error("Could not process graphData {}", graphData, e);
         }
+        return "";
     }
 
     private GraphLine convertTeamLineDataToGraphLine(List<GameEvent> sortedGameEvents, boolean home, Constants.LineType lineType) {
@@ -61,10 +65,9 @@ public class GameEventToGraphTransformer {
             graphLine.setColor("hsl(35, 55%, 39%)");
         }
 
-        List<GraphPoint> points = new ArrayList<>();
-        for (GameEvent event : sortedGameEvents) {
-            points.add(buildGraphPointForTeamAndLineType(event, home, lineType));
-        }
+        List<GraphPoint> points = sortedGameEvents.stream()
+                .map((gameEvent) -> buildGraphPointForTeamAndLineType(gameEvent, home, lineType))
+                .collect(Collectors.toList());
 
         graphLine.setData(points);
         return graphLine;

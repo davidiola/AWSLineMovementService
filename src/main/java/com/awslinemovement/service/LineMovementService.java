@@ -4,6 +4,7 @@ package com.awslinemovement.service;
 import com.awslinemovement.service.constants.Constants;
 import com.awslinemovement.service.dynamo.DynamoAccessor;
 import com.awslinemovement.service.metrics.CloudWatchAccessor;
+import com.awslinemovement.service.model.api.GameEventRequest;
 import com.awslinemovement.service.model.dataaccess.GameEvent;
 import com.awslinemovement.service.scrape.GameLinesRetriever;
 import com.awslinemovement.service.scrape.SportsBookScrape;
@@ -39,8 +40,14 @@ public class LineMovementService {
 
 
 
-    public void init() {
+    public void initScrape() {
         putGameEventItems();
+    }
+
+    public String initGetAPI(GameEventRequest gameEventRequest) {
+        String json = retrieveGameEventGraph(gameEventRequest);
+        System.out.println(json);
+        return json;
     }
 
     private void putGameEventItems() {
@@ -77,8 +84,16 @@ public class LineMovementService {
         dynamoAccessor.putGameEventItems(gameEventList);
     }
 
-    private void retrieveGameEventGraph() {
-        List<GameEvent> events = dynamoAccessor.retrieveGameEventsForIdentifier("Los-Angeles-LakersvNew-Orleans-Pelicans03-01-2020");
-        gameEventToGraphTransformer.writeGameEventToGraphDataFile(events);
+    private String retrieveGameEventGraph(GameEventRequest gameEventRequest) {
+        // transform input to gameEventIdentifier
+        String gameEventIdentifier = gameEventToGraphTransformer.transformRequestToIdentifier(gameEventRequest);
+        System.out.println(gameEventIdentifier);
+        List<GameEvent> events = dynamoAccessor.retrieveGameEventsForIdentifier(gameEventIdentifier);
+        if (events.isEmpty()) {
+            log.error("No GameEvents found for identifier: {}", gameEventIdentifier);
+            return "none";
+        } else {
+            return gameEventToGraphTransformer.returnGameEventInGraphJSON(events);
+        }
     }
 }
