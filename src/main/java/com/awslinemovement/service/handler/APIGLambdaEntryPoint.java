@@ -76,6 +76,10 @@ public class APIGLambdaEntryPoint implements RequestStreamHandler {
             responseJson.put("exception", exception);
         }
 
+        JSONObject headerJson = new JSONObject();
+        headerJson.put("Access-Control-Allow-Origin", "*"); // enable CORS
+        responseJson.put("headers", headerJson);
+
         OutputStreamWriter writer = new OutputStreamWriter(outputStream, "UTF-8");
         writer.write(responseJson.toString());
         writer.close();
