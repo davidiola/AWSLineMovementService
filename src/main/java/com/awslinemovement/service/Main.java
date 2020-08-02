@@ -14,10 +14,6 @@ public class Main {
         );
 
         LineMovementService lineMovementService = injector.getInstance(LineMovementService.class);
-        lineMovementService.initGetAPI(GameEventRequest.builder()
-                .homeTeam("Cleveland-Cavaliers")
-                .awayTeam("Philadelphia-76ers")
-                .dateOfEvent("02-26-2020")
-                .build());
+        lineMovementService.initScrape();
     }
 }

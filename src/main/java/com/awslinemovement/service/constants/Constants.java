@@ -5,11 +5,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 public final class Constants {
-    public enum Sport { NBA, NFL, NCAAB }
+    public enum Sport { NBA, NFL, NHL, MLB, NCAAB }
     public enum LineType { ML, SPREAD, TOTAL }
     public static final Map<Sport, String> SPORT_STRING_MAP = ImmutableMap.of(
             Sport.NBA, "NBA",
             Sport.NFL, "NFL",
+            Sport.NHL, "NHL",
+            Sport.MLB, "MLB",
             Sport.NCAAB, "NCAA Basketball"
     );
 
@@ -20,6 +22,8 @@ public final class Constants {
     public static final String DASH = "-";
     public static final String YEAR_PREFIX_STRING = DASH + "20";
     public static final int LENGTH_OF_DATE_STR = 6;
+    public static final String TLO_STR = "TLO";
+    public static final String BRACKET = "[";
     public static final String UPDATE_TICKET_SELECTOR = "a[href*=\"./updateTicket.sbk\"]";
     public static final String VERSUS_STR = "v";
     public static final String AWAY_TEAM_NAME_SELECTOR = "#firstTeamName";

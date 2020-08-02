@@ -30,13 +30,12 @@ public class GameLinesRetriever {
     }
 
     private String getDateOfEvent(Element gameLineRowEvent) {
-        Element updateTicketElement = gameLineRowEvent.select(UPDATE_TICKET_SELECTOR).first();
+        final Element updateTicketElement = gameLineRowEvent.select(UPDATE_TICKET_SELECTOR).first();
         if (updateTicketElement != null) {
-            String id = updateTicketElement.id();
-            String bracketedString = id.substring(id.indexOf("["));
-            String[] bracketedStringParts = bracketedString.split(DASH);
-            String dateStringPartWithExcessCharacters = bracketedStringParts[3];
-            String dateStringPart = dateStringPartWithExcessCharacters.substring(0,LENGTH_OF_DATE_STR);
+            final String id = updateTicketElement.id();
+            final String bracketedString = id.substring(id.indexOf(BRACKET));
+            final Integer idxOfTLO = bracketedString.indexOf(TLO_STR);
+            final String dateStringPart = bracketedString.substring(idxOfTLO - LENGTH_OF_DATE_STR, idxOfTLO);
             return dateStringPart.substring(0, 2) + DASH + dateStringPart.substring(2, 4) + YEAR_PREFIX_STRING + dateStringPart.substring(4,LENGTH_OF_DATE_STR);
         }
         return "";
@@ -93,7 +92,7 @@ public class GameLinesRetriever {
             teamNameSelector = AWAY_TEAM_NAME_SELECTOR;
             marketIdx = AWAY_TEAM_MARKET_IDX;
         }
-        team.setName(gameLineRowEvent.select(teamNameSelector).text());
+        team.setName(gameLineRowEvent.select(teamNameSelector).text().replace("(N)","").strip());
 
         // ML class is actually total, total actually ML
         Elements moneyMarketElems = gameLineRowEvent.select(ML_SELECTOR).select(".market");
@@ -135,7 +134,6 @@ public class GameLinesRetriever {
     }
 
     public Optional<List<GameEvent>> retrieveGameEvents(Document doc) {
-        List<GameEvent> gameEventList = new ArrayList<>();
         Elements rowEvents = doc.select(".row.event");
         // 1 Overarching blank row event
         if (rowEvents.size() <= 1) {

@@ -9,6 +9,7 @@ import com.awslinemovement.service.model.dataaccess.GameEvent;
 import com.awslinemovement.service.scrape.GameLinesRetriever;
 import com.awslinemovement.service.scrape.SportsBookScrape;
 import com.awslinemovement.service.transformers.GameEventToGraphTransformer;
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -46,13 +47,19 @@ public class LineMovementService {
 
     public String initGetAPI(GameEventRequest gameEventRequest) {
         String json = retrieveGameEventGraph(gameEventRequest);
-        System.out.println(json);
         return json;
     }
 
     private void putGameEventItems() {
-        Constants.Sport sport = Constants.Sport.NFL;
+        List<Constants.Sport> supportedSportsList = ImmutableList.of(Constants.Sport.NBA,
+                Constants.Sport.NFL,
+                Constants.Sport.NHL,
+                Constants.Sport.MLB);
         Document homeDoc = sportsBookScrape.returnDocumentFromUrl(SPORTSBOOK_BASE_URL);
+        supportedSportsList.stream().forEach((sport) -> retrieveLinesForSport(sport, homeDoc));
+    }
+
+    private void retrieveLinesForSport(final Constants.Sport sport, final Document homeDoc) {
         sportsBookScrape.retrieveGameLineUrlForSport(sport, homeDoc).ifPresentOrElse(url -> processGameLineUrl(url, sport),
                 () -> {
                     cloudWatchAccessor.transmitMetricForGameLineUrl(false, sport);
